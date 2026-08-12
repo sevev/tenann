@@ -236,11 +236,29 @@ echo "===== Patching thirdparty archives..."
 PATCHED_MARK="patched_mark"
 
 # patch faiss
-cd $TP_SOURCE_DIR/$FAISS_SOURCE
-if [ ! -f $PATCHED_MARK ]; then
-    patch -p1 < $TP_PATCH_DIR/faiss-1.12.0.patch
-    touch $PATCHED_MARK
+FAISS_PATCH_FILE=$TP_PATCH_DIR/faiss-1.12.0.patch
+FAISS_PATCH_CHECKSUM=$(cksum < "$FAISS_PATCH_FILE")
+FAISS_PATCHED_MARK=$TP_SOURCE_DIR/$FAISS_SOURCE/$PATCHED_MARK
+
+if [ -f "$FAISS_PATCHED_MARK" ] && [ "$(cat "$FAISS_PATCHED_MARK")" != "$FAISS_PATCH_CHECKSUM" ]; then
+    echo "Faiss patch changed; unpacking a clean source tree."
+    rm -rf "$TP_SOURCE_DIR/$FAISS_SOURCE" "$TP_SOURCE_DIR/tmp_dir"
+    mkdir -p "$TP_SOURCE_DIR/tmp_dir"
+    if ! $TAR_CMD xzf "$TP_SOURCE_DIR/$FAISS_NAME" -C "$TP_SOURCE_DIR/tmp_dir"; then
+        echo "Failed to untar $FAISS_NAME"
+        exit 1
+    fi
+    mv "$TP_SOURCE_DIR/tmp_dir/$FAISS_SOURCE" "$TP_SOURCE_DIR/$FAISS_SOURCE"
+    rmdir "$TP_SOURCE_DIR/tmp_dir"
+fi
+
+cd "$TP_SOURCE_DIR/$FAISS_SOURCE"
+if [ ! -f "$PATCHED_MARK" ]; then
+    if ! patch -p1 < "$FAISS_PATCH_FILE"; then
+        echo "Failed to patch $FAISS_SOURCE"
+        exit 1
+    fi
+    printf '%s\n' "$FAISS_PATCH_CHECKSUM" > "$PATCHED_MARK"
 fi
 cd -
 echo "Finished patching $FAISS_SOURCE"
-

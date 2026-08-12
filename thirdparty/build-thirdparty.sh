@@ -310,6 +310,8 @@ export CFLAGS=$GLOBAL_CFLAGS
 build_fmt
 build_openblas # must before faiss
 build_faiss
+printf '%s\n' "$(cksum < "${TP_PATCH_DIR}/faiss-1.12.0.patch")" > \
+    "${TP_INSTALL_DIR}/.faiss_patch_checksum"
 build_gtest
 # build_pybind11
 

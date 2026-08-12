@@ -64,7 +64,20 @@ if [[ $OSTYPE == darwin* ]]; then
     PARALLEL=$(sysctl -n hw.ncpu)
     # We know for sure that build-thirdparty.sh will fail on darwin platform, so just skip the step.
 else
+    BUILD_THIRDPARTY=0
     if [[ ! -f ${TENANN_THIRDPARTY}/installed/include/faiss/Index.h ]]; then
+        BUILD_THIRDPARTY=1
+    elif [[ -f ${TENANN_THIRDPARTY}/patches/faiss-1.12.0.patch &&
+            -f ${TENANN_THIRDPARTY}/build-thirdparty.sh ]]; then
+        FAISS_PATCH_CHECKSUM=$(cksum < "${TENANN_THIRDPARTY}/patches/faiss-1.12.0.patch")
+        FAISS_PATCHED_MARK=${TENANN_THIRDPARTY}/installed/.faiss_patch_checksum
+        if [[ ! -f ${FAISS_PATCHED_MARK} ||
+                "$(cat "${FAISS_PATCHED_MARK}")" != "${FAISS_PATCH_CHECKSUM}" ]]; then
+            echo "Faiss patch changed since the installed thirdparty build."
+            BUILD_THIRDPARTY=1
+        fi
+    fi
+    if [[ ${BUILD_THIRDPARTY} -eq 1 ]]; then
         echo "Thirdparty libraries need to be build ..."
         bash ${TENANN_THIRDPARTY}/build-thirdparty.sh
     fi
